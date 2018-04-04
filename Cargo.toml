@@ -1,0 +1,8 @@
+[package]
+name = "lisp"
+version = "0.1.0"
+authors = ["Riley Watkins <riley@rileywatkins.com>"]
+
+[dependencies]
+regex = "0.2.10"
+itertools = "0.7.8"
