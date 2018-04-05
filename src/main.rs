@@ -12,10 +12,14 @@ use regex::Regex;
 enum Token {
     LParen,
     RParen,
+    LBracket,
+    RBracket,
     Symbol(String),
     Number(i32),
     Whitespace(String),
 }
+
+type LexResult = Option<(Token, usize)>;
 
 // data LispVal = Atom String
 //              | List [LispVal]
@@ -29,6 +33,7 @@ enum Token {
 enum LispVal {
     Symbol(String),
     List(Vec<LispVal>),
+    Vector(Vec<LispVal>),
     Number(i32),
     Nil,
     And,
@@ -45,7 +50,7 @@ impl fmt::Display for LispVal {
 
         match *self {
             Symbol(ref s) => write!(f, "{}", s),
-            List(ref vals) => write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(", ")),
+            List(ref vals) | Vector(ref vals) => write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(" ")),
             Number(i) => write!(f, "{}", i),
             Nil => write!(f, "nil"),
             And => write!(f, "and"),
@@ -66,16 +71,24 @@ fn lex_whitespace(s: &str, i: usize) -> Option<(Token, usize)> {
 }
 
 fn lex_lparen(s: &str, i: usize) -> Option<(Token, usize)> {
-    if s[i..].starts_with('(') {
-        Some((Token::LParen, i + 1))
-    } else {
-        None
-    }
+    lex_char(&s, i, '(', Token::LParen)
+}
+
+fn lex_lbracket(s: &str, i: usize) -> Option<(Token, usize)> {
+    lex_char(&s, i, '[', Token::LBracket)
+}
+
+fn lex_rbracket(s: &str, i: usize) -> LexResult {
+    lex_char(&s, i, ']', Token::RBracket)
 }
 
 fn lex_rparen(s: &str, i: usize) -> Option<(Token, usize)> {
-    if s[i..].starts_with(')') {
-        Some((Token::RParen, i + 1))
+    lex_char(s, i, ')', Token::RParen)
+}
+
+fn lex_char(s: &str, i: usize, c: char, token: Token) -> Option<(Token, usize)> {
+    if s[i..].starts_with(c) {
+        Some((token, i + 1))
     } else {
         None
     }
@@ -125,6 +138,8 @@ fn lex_once(s: &str, index: usize) -> Option<(Token, usize)> {
         lex_whitespace,
         lex_lparen,
         lex_rparen,
+        lex_lbracket,
+        lex_rbracket,
         lex_number,
         lex_symbol,
     ];
@@ -156,7 +171,7 @@ fn parse_list(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
     let mut list = vec![];
     let _ = match tokens.pop_front() {
         Some(Token::LParen) => (),
-        t => return Err(format!("Unexpected token: {:?}", t)),
+        t => return Err(format!("Unexpected token while parsing list: {:?}", t)),
     };
 
     loop {
@@ -174,10 +189,50 @@ fn parse_list(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
                 let lst = parse_list(tokens)?;
                 list.push(lst);
             }
+            Some(Token::LBracket) => {
+                tokens.push_front(Token::LBracket);
+                let lst = parse_vector(tokens)?;
+                list.push(lst);
+            }
+            Some(Token::RBracket) => return Err(format!("Unexpected token while parsing list: {:?}", Token::RBracket)),
         }
     }
 
     Ok(LispVal::List(list))
+}
+
+fn parse_vector(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
+    let mut list = vec![];
+    let _ = match tokens.pop_front() {
+        Some(Token::LBracket) => (),
+        t => return Err(format!("Unexpected token while parsing vector: {:?}", t)),
+    };
+
+    loop {
+        match tokens.pop_front() {
+            None => return Err("Unexpected end of input".into()),
+            Some(Token::RBracket) => break,
+            Some(Token::Whitespace(..)) => continue,
+            Some(s@Token::Symbol(..)) => {
+                tokens.push_front(s);
+                list.push(parse_symbol(tokens)?);
+            }
+            Some(Token::Number(i)) => list.push(LispVal::Number(i)),
+            Some(Token::LParen) => {
+                tokens.push_front(Token::LParen);
+                let lst = parse_list(tokens)?;
+                list.push(lst);
+            }
+            Some(Token::LBracket) => {
+                tokens.push_front(Token::LBracket);
+                let lst = parse_vector(tokens)?;
+                list.push(lst);
+            }
+            Some(Token::RParen) => return Err(format!("Unexpected token while parsing vector: {:?}", Token::RParen)),
+        }
+    }
+
+    Ok(LispVal::Vector(list))
 }
 
 fn peek(tokens: &VecDeque<Token>) -> Option<&Token> {
@@ -188,7 +243,7 @@ fn parse_number(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
     match tokens.pop_front() {
         None => Err("Unexpected end of input".into()),
         Some(Token::Number(i)) => Ok(LispVal::Number(i)),
-        Some(t) => Err(format!("Unexpected token: {:?}", t)),
+        Some(t) => Err(format!("Unexpected token while parsing number: {:?}", t)),
     }
 }
 
@@ -207,7 +262,7 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
                 _ => Ok(LispVal::Symbol(s)),
             }
         },
-        Some(t) => Err(format!("Unexpected token: {:?}", t)),
+        Some(t) => Err(format!("Unexpected token while parsing symbol: {:?}", t)),
     }
 }
 
@@ -240,6 +295,8 @@ fn parse(tokens: &[Token]) -> Result<Vec<LispVal>, String> {
             Some(&Token::Symbol(_)) => assert!(false), //vals.push(parse_symbol(&mut tokens)?),
             Some(&Token::Whitespace(_)) => skip_whitespace(&mut tokens),
             Some(&Token::RParen) => panic!("Unexpected right paren"),
+            Some(&Token::LBracket) => vals.push(parse_vector(&mut tokens)?),
+            Some(&Token::RBracket) => panic!("Unexpected right bracket"),
             None => break,
         };
     }
@@ -330,6 +387,10 @@ fn eval(val: LispVal) -> Result<LispVal, String> {
             let f = &vals[0];
             let args: Vec<LispVal> = Vec::from(&vals[1..]);
             return call_function(&f, &args);
+        }
+        LispVal::Vector(ref vals) => {
+            let lst: Result<Vec<_>, String> = vals.iter().map(|v| eval(v.clone())).collect();
+            lst.map(|v| LispVal::Vector(v))
         }
         v@LispVal::Number(..) => Ok(v),
         _ => panic!("Don't know how to do that yet (eval: {:?})", val),
