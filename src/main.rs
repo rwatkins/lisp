@@ -36,6 +36,7 @@ enum LispVal {
     Plus,
     Minus,
     Mult,
+    Div,
 }
 
 impl fmt::Display for LispVal {
@@ -52,8 +53,8 @@ impl fmt::Display for LispVal {
             Plus => write!(f, "+"),
             Minus => write!(f, "-"),
             Mult => write!(f, "*"),
+            Div => write!(f, "/"),
         }
-        // write!(f, "({}, {})", self.x, self.y)
     }
 }
 
@@ -81,7 +82,7 @@ fn lex_rparen(s: &str, i: usize) -> Option<(Token, usize)> {
 }
 
 fn lex_symbol(s: &str, i: usize) -> Option<(Token, usize)> {
-    let re = Regex::new(r"^([\-_+a-zA-Z\*]+[a-zA-Z0-9]*)").unwrap();
+    let re = Regex::new(r"^([\-_+a-zA-Z\*/]+[a-zA-Z0-9]*)").unwrap();
     let caps = re.captures(&s[i..])?;
     let symbol = caps.get(1)?.as_str();
     Some((Token::Symbol(symbol.to_string()), i + symbol.len()))
@@ -202,6 +203,7 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
                 "+" => Ok(LispVal::Plus),
                 "-" => Ok(LispVal::Minus),
                 "*" => Ok(LispVal::Mult),
+                "/" => Ok(LispVal::Div),
                 _ => Ok(LispVal::Symbol(s)),
             }
         },
@@ -300,6 +302,19 @@ fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
             for arg in args[1..].iter() {
                 match eval(arg.clone())? {
                     LispVal::Number(ref i) => result *= i,
+                    x => return Err(format!("Unexpected arg to mult: {:?}", x)),
+                }
+            }
+            Ok(LispVal::Number(result))
+        }
+        &LispVal::Div => {
+            let mut result = match eval(args[0].clone())? {
+                LispVal::Number(i) => i,
+                x => return Err(format!("Unexpected arg to mult: {:?}", x)),
+            };
+            for arg in args[1..].iter() {
+                match eval(arg.clone())? {
+                    LispVal::Number(ref i) => result /= i,
                     x => return Err(format!("Unexpected arg to mult: {:?}", x)),
                 }
             }
