@@ -35,6 +35,7 @@ enum LispVal {
     List(Vec<LispVal>),
     Vector(Vec<LispVal>),
     Number(i32),
+    Bool(bool),
     Function(String),
     Nil,
 }
@@ -47,6 +48,7 @@ impl fmt::Display for LispVal {
             Symbol(ref s) => write!(f, "{}", s),
             List(ref vals) | Vector(ref vals) => write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(" ")),
             Number(i) => write!(f, "{}", i),
+            Bool(b) => write!(f, "{}", b),
             Function(ref s) => write!(f, "<fn {}>", s),
             Nil => write!(f, "nil"),
         }
@@ -242,9 +244,11 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
         None => Err("Unexpected end of input".into()),
         Some(Token::Symbol(s)) => {
             match s.as_ref() {
+                "true" => Ok(LispVal::Bool(true)),
+                "false" => Ok(LispVal::Bool(false)),
+                "nil" => Ok(LispVal::Nil),
                 "and" => Ok(LispVal::Function("and".into())),
                 "or" => Ok(LispVal::Function("or".into())),
-                "nil" => Ok(LispVal::Nil),
                 "+" => Ok(LispVal::Function("+".into())),
                 "-" => Ok(LispVal::Function("-".into())),
                 "*" => Ok(LispVal::Function("*".into())),
@@ -282,7 +286,7 @@ fn parse(tokens: &[Token]) -> Result<Vec<LispVal>, String> {
         match peek(&tokens) {
             Some(&Token::LParen) => vals.push(parse_list(&mut tokens)?),
             Some(&Token::Number(_)) => vals.push(parse_number(&mut tokens)?),
-            Some(&Token::Symbol(_)) => assert!(false), //vals.push(parse_symbol(&mut tokens)?),
+            Some(&Token::Symbol(_)) => vals.push(parse_symbol(&mut tokens)?),
             Some(&Token::Whitespace(_)) => skip_whitespace(&mut tokens),
             Some(&Token::RParen) => panic!("Unexpected right paren"),
             Some(&Token::LBracket) => vals.push(parse_vector(&mut tokens)?),
@@ -296,7 +300,7 @@ fn parse(tokens: &[Token]) -> Result<Vec<LispVal>, String> {
 
 fn is_truthy(val: &LispVal) -> bool {
     match val {
-        &LispVal::Nil => false,
+        &LispVal::Nil | &LispVal::Bool(false) => false,
         _ => true,
     }
 }
