@@ -35,13 +35,8 @@ enum LispVal {
     List(Vec<LispVal>),
     Vector(Vec<LispVal>),
     Number(i32),
+    Function(String),
     Nil,
-    And,
-    Or,
-    Plus,
-    Minus,
-    Mult,
-    Div,
 }
 
 impl fmt::Display for LispVal {
@@ -52,13 +47,8 @@ impl fmt::Display for LispVal {
             Symbol(ref s) => write!(f, "{}", s),
             List(ref vals) | Vector(ref vals) => write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(" ")),
             Number(i) => write!(f, "{}", i),
+            Function(ref s) => write!(f, "<fn {}>", s),
             Nil => write!(f, "nil"),
-            And => write!(f, "and"),
-            Or => write!(f, "or"),
-            Plus => write!(f, "+"),
-            Minus => write!(f, "-"),
-            Mult => write!(f, "*"),
-            Div => write!(f, "/"),
         }
     }
 }
@@ -252,13 +242,13 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
         None => Err("Unexpected end of input".into()),
         Some(Token::Symbol(s)) => {
             match s.as_ref() {
-                "and" => Ok(LispVal::And),
-                "or" => Ok(LispVal::Or),
+                "and" => Ok(LispVal::Function("and".into())),
+                "or" => Ok(LispVal::Function("or".into())),
                 "nil" => Ok(LispVal::Nil),
-                "+" => Ok(LispVal::Plus),
-                "-" => Ok(LispVal::Minus),
-                "*" => Ok(LispVal::Mult),
-                "/" => Ok(LispVal::Div),
+                "+" => Ok(LispVal::Function("+".into())),
+                "-" => Ok(LispVal::Function("-".into())),
+                "*" => Ok(LispVal::Function("*".into())),
+                "/" => Ok(LispVal::Function("/".into())),
                 _ => Ok(LispVal::Symbol(s)),
             }
         },
@@ -312,8 +302,21 @@ fn is_truthy(val: &LispVal) -> bool {
 }
 
 fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
-    match f {
-        &LispVal::Plus => {
+    let fn_name = match f {
+        &LispVal::Function(ref s) => s,
+        _ => return Err(format!("Don't know how to do that yet (call_function: {:?})", f)),
+    };
+
+    match fn_name.as_ref() {
+        "or" => {
+            for arg in args {
+                if is_truthy(arg) {
+                    return Ok(arg.clone());
+                }
+            }
+            Ok(args[args.len() - 1].clone())
+        }
+        "+" => {
             let mut plus_args: Vec<i32> = vec![];
             for arg in args {
                 match arg {
@@ -330,15 +333,7 @@ fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
             }
             Ok(LispVal::Number(plus_args.iter().fold(0, |acc, i| acc + i)))
         }
-        &LispVal::Or => {
-            for arg in args {
-                if is_truthy(arg) {
-                    return Ok(arg.clone());
-                }
-            }
-            Ok(args[args.len() - 1].clone())
-        }
-        &LispVal::Minus => {
+        "-" => {
             let mut result = match eval(args[0].clone())? {
                 LispVal::Number(i) => i,
                 x => return Err(format!("Unexpected arg to minus: {:?}", x)),
@@ -351,7 +346,7 @@ fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
             }
             Ok(LispVal::Number(result))
         }
-        &LispVal::Mult => {
+        "*" => {
             let mut result = match eval(args[0].clone())? {
                 LispVal::Number(i) => i,
                 x => return Err(format!("Unexpected arg to mult: {:?}", x)),
@@ -364,20 +359,20 @@ fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
             }
             Ok(LispVal::Number(result))
         }
-        &LispVal::Div => {
+        "/" => {
             let mut result = match eval(args[0].clone())? {
                 LispVal::Number(i) => i,
-                x => return Err(format!("Unexpected arg to mult: {:?}", x)),
+                x => return Err(format!("Unexpected arg to div: {:?}", x)),
             };
             for arg in args[1..].iter() {
                 match eval(arg.clone())? {
                     LispVal::Number(ref i) => result /= i,
-                    x => return Err(format!("Unexpected arg to mult: {:?}", x)),
+                    x => return Err(format!("Unexpected arg to div: {:?}", x)),
                 }
             }
             Ok(LispVal::Number(result))
         }
-        _ => panic!("Don't know how to do that yet (call_function: {:?})", f),
+        s => Err(format!("Don't know how to do that yet (call_function: {})", s)),
     }
 }
 
