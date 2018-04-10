@@ -308,6 +308,14 @@ fn call_function(f: &LispVal, args: &Vec<LispVal>) -> Result<LispVal, String> {
     };
 
     match fn_name.as_ref() {
+        "and" => {
+            for arg in args {
+                if !is_truthy(arg) {
+                    return Ok(arg.clone());
+                }
+            }
+            Ok(args[args.len() - 1].clone())
+        }
         "or" => {
             for arg in args {
                 if is_truthy(arg) {
