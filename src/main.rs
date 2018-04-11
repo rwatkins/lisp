@@ -5,6 +5,7 @@ mod eval;
 mod lex;
 mod parse;
 
+use std::collections::HashMap;
 use std::io::{self, Read};
 use eval::eval;
 use lex::lex;
@@ -16,5 +17,9 @@ fn main() {
 
     let mut tokens = lex(&s).expect("lexing failed");
     let ast = parse(&mut tokens).expect("parse failed");
-    println!("{}", eval(ast[0].clone()).expect("eval failed"));
+
+    let mut scope = HashMap::new();
+    scope.insert("asdf".into(), LispVal::Number(10));
+
+    println!("{}", eval(ast[0].clone(), &scope).expect("eval failed"));
 }
