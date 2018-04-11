@@ -3,14 +3,6 @@ use std::fmt;
 use itertools::Itertools;
 use lex::Token;
 
-// data LispVal = Atom String
-//              | List [LispVal]
-//              | DottedList [LispVal] LispVal
-//              | Number Integer
-//              | String String
-//              | Bool Bool
-// deriving (Read, Show, Eq)
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum LispVal {
     Symbol(String),
