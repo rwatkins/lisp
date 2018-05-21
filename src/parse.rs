@@ -11,6 +11,7 @@ pub enum LispVal {
     Number(i32),
     Bool(bool),
     Function(String),
+    Let,
     Nil,
 }
 
@@ -24,6 +25,7 @@ impl fmt::Display for LispVal {
             Number(i) => write!(f, "{}", i),
             Bool(b) => write!(f, "{}", b),
             Function(ref s) => write!(f, "<fn {}>", s),
+            Let => write!(f, "<let>"),
             Nil => write!(f, "nil"),
         }
     }
@@ -123,6 +125,7 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> Result<LispVal, String> {
                 "-" => Ok(LispVal::Function("-".into())),
                 "*" => Ok(LispVal::Function("*".into())),
                 "/" => Ok(LispVal::Function("/".into())),
+                "let" => Ok(LispVal::Let),
                 _ => Ok(LispVal::Symbol(s)),
             }
         },

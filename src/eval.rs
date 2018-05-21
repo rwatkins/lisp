@@ -96,20 +96,53 @@ fn call_div(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
     Ok(LispVal::Number(result))
 }
 
-fn call_function(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
-    let fn_name = match f {
-        &LispVal::Function(ref s) => s,
-        _ => return Err(format!("Don't know how to do that yet (call_function: {:?})", f)),
+fn call_let(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
+    let mut new_scope = scope.clone();
+    let bindings = match args[0] {
+        LispVal::Vector(ref v) => v.clone(),
+        _ => return Err("Expected vector as first argument to let".into()),
     };
+    if bindings.len() % 2 != 0 {
+        return Err("Odd number of binding args in let".into());
+    }
 
-    match fn_name.as_ref() {
-        "and" => call_add(&args, &scope),
-        "or" => call_or(&args, &scope),
-        "+" => call_plus(&args, &scope),
-        "-" => call_minus(&args, &scope),
-        "*" => call_mult(&args, &scope),
-        "/" => call_div(&args, &scope),
-        s => Err(format!("Don't know how to do that yet (call_function: {})", s)),
+    let expressions = args[1..].to_vec();
+    if expressions.is_empty() {
+        return Err("No expressions to eval in let".into());
+    }
+
+    let mut i = 0;
+    while i < bindings.len() {
+        let name = match &bindings[i] {
+            &LispVal::Symbol(ref s) => s.clone(),
+            _ => return Err(format!("let cannot bind value to non-symbol {:?}", &bindings[1])),
+        };
+        let value = bindings[i+1].clone();
+        let new_scope_copy = new_scope.clone();
+        new_scope.insert(name, eval(value, &new_scope_copy)?);
+        i += 2;
+    }
+
+    let mut result = Err("Nothing evaluated".into());
+    for e in expressions.iter() {
+        result = eval(e.clone(), &new_scope);
+    }
+    result
+}
+
+fn call_function(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
+    match f {
+        &LispVal::Function(ref fn_name) => match fn_name.as_ref() {
+            "and" => call_add(&args, &scope),
+            "or" => call_or(&args, &scope),
+            "+" => call_plus(&args, &scope),
+            "-" => call_minus(&args, &scope),
+            "*" => call_mult(&args, &scope),
+            "/" => call_div(&args, &scope),
+            s => Err(format!("Don't know how to do that yet (call_function: {})", s)),
+        },
+        &LispVal::Let => call_let(&args, &scope),
+        _ => return Err(format!("Don't know how to do that yet (call_function: {:?})", f)),
     }
 }
 
