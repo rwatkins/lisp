@@ -11,7 +11,7 @@ fn is_truthy(val: &LispVal) -> bool {
     }
 }
 
-fn call_add(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
+fn call_and(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
     for arg in args {
         if !is_truthy(arg) {
             return Ok(arg.clone());
@@ -133,7 +133,7 @@ fn call_let(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
 fn call_function(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
     match f {
         &LispVal::Function(ref fn_name) => match fn_name.as_ref() {
-            "and" => call_add(&args, &scope),
+            "and" => call_and(&args, &scope),
             "or" => call_or(&args, &scope),
             "+" => call_plus(&args, &scope),
             "-" => call_minus(&args, &scope),
