@@ -4,6 +4,10 @@ use parse::LispVal;
 type EvalResult = Result<LispVal, String>;
 type Scope = HashMap<String, LispVal>;
 
+fn new_scope() -> Scope {
+    HashMap::new()
+}
+
 fn is_truthy(val: &LispVal) -> bool {
     match val {
         &LispVal::Nil | &LispVal::Bool(false) => false,
@@ -11,13 +15,38 @@ fn is_truthy(val: &LispVal) -> bool {
     }
 }
 
+#[test]
+fn test_is_truthy() {
+    assert_eq!(is_truthy(&LispVal::Bool(true)), true);
+    assert_eq!(is_truthy(&LispVal::Bool(false)), false);
+    assert_eq!(is_truthy(&LispVal::Nil), false);
+    assert_eq!(is_truthy(&LispVal::Symbol("abcd".into())), true);
+}
+
 fn call_and(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
+    if args.is_empty() {
+        return Ok(LispVal::Bool(true));
+    }
     for arg in args {
         if !is_truthy(arg) {
             return Ok(arg.clone());
         }
     }
     Ok(args[args.len() - 1].clone())
+}
+
+#[test]
+fn test_call_and_with_1_arg() {
+    let args = vec![LispVal::Bool(true)];
+    let result = call_and(&args, &new_scope());
+    assert_eq!(result, Ok(LispVal::Bool(true)));
+}
+
+#[test]
+fn test_call_and_with_no_args() {
+    let args = vec![];
+    let result = call_and(&args, &new_scope());
+    assert_eq!(result, Ok(LispVal::Bool(true)));
 }
 
 fn call_or(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
@@ -128,6 +157,25 @@ fn call_let(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
         result = eval(e.clone(), &new_scope);
     }
     result
+}
+
+#[test]
+fn test_call_let() {
+    let args = vec![
+        LispVal::Vector(vec![
+            LispVal::Symbol("x".into()),
+            LispVal::Number(1),
+            LispVal::Symbol("y".into()),
+            LispVal::Number(2),
+        ]),
+        LispVal::List(vec![
+            LispVal::Function("+".into()),
+            LispVal::Symbol("x".into()),
+            LispVal::Symbol("y".into()),
+        ]),
+    ];
+    let result = call_let(&args, &new_scope());
+    assert_eq!(result, Ok(LispVal::Number(3)));
 }
 
 fn call_function(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
