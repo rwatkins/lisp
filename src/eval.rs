@@ -58,25 +58,11 @@ fn call_or(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
     Ok(args[args.len() - 1].clone())
 }
 
-fn call_plus(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
+fn call_plus(args: &Vec<LispVal>, _scope: &Scope) -> EvalResult {
     let mut plus_args: Vec<i32> = vec![];
     for arg in args {
         match arg {
             &LispVal::Number(i) => plus_args.push(i),
-            lst@&LispVal::List(..) => {
-                let result = eval(lst.clone(), &scope)?;
-                match result {
-                    LispVal::Number(i) => plus_args.push(i),
-                    v => return Err(format!("Unexpected arg to plus 1: {:?}", v)),
-                }
-            }
-            s@&LispVal::Symbol(..) => {
-                match eval(s.clone(), &scope)? {
-                    LispVal::Number(i) => plus_args.push(i),
-                    v => return Err(format!("Unexpected arg to plus 2: {:?}", v)),
-                }
-
-            }
             v => return Err(format!("Unexpected arg to plus 3: {:?}", v)),
         }
     }
@@ -198,7 +184,10 @@ pub fn eval(val: LispVal, scope: &Scope) -> Result<LispVal, String> {
     match val {
         LispVal::List(vals) => {
             let f = &vals[0];
-            let args: Vec<LispVal> = Vec::from(&vals[1..]);
+            let mut args = vec![];
+            for arg in &vals[1..] {
+                args.push(eval(arg.clone(), &scope)?);
+            }
             return call_function(&f, &args, &scope);
         }
         LispVal::Vector(ref vals) => {
