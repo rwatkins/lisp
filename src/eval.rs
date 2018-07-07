@@ -69,18 +69,29 @@ fn call_plus(args: &Vec<LispVal>, _scope: &Scope) -> EvalResult {
     Ok(LispVal::Number(plus_args.iter().fold(0, |acc, i| acc + i)))
 }
 
-fn call_minus(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
-    let mut result = match eval(args[0].clone(), &scope)? {
-        LispVal::Number(i) => i,
+fn call_minus(args: &Vec<LispVal>, _scope: &Scope) -> EvalResult {
+    let mut result: i32 = match &args[0] {
+        LispVal::Number(i) => *i,
         x => return Err(format!("Unexpected arg to minus: {:?}", x)),
     };
     for arg in args[1..].iter() {
-        match eval(arg.clone(), &scope)? {
+        match arg {
             LispVal::Number(ref i) => result -= i,
             x => return Err(format!("Unexpected arg to minus: {:?}", x)),
         }
     }
     Ok(LispVal::Number(result))
+}
+
+#[test]
+fn test_call_minus() {
+    let args = vec![
+        LispVal::Number(6),
+        LispVal::Number(1),
+        LispVal::Number(2),
+    ];
+    let result = call_minus(&args, &new_scope());
+    assert_eq!(result, Ok(LispVal::Number(3)));
 }
 
 fn call_mult(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
