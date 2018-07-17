@@ -166,7 +166,7 @@ fn test_call_let() {
             LispVal::Number(2),
         ]),
         LispVal::List(vec![
-            LispVal::Function("+".into()),
+            LispVal::Symbol("+".into()),
             LispVal::Symbol("x".into()),
             LispVal::Symbol("y".into()),
         ]),
@@ -175,42 +175,106 @@ fn test_call_let() {
     assert_eq!(result, Ok(LispVal::Number(3)));
 }
 
+fn call_function_by_symbol(symbol: &str, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
+    match symbol.as_ref() {
+        "and" => call_and(&args, &scope),
+        "or" => call_or(&args, &scope),
+        "+" => call_plus(&args, &scope),
+        "-" => call_minus(&args, &scope),
+        "*" => call_mult(&args, &scope),
+        "/" => call_div(&args, &scope),
+        "let" => call_let(&args, &scope),
+        s => match scope.get(symbol) {
+            Some(f) => call_lambda(f, args, scope),
+            _ => Err(format!("undefined function {:?}", s)),
+        }
+    }
+}
+
+#[test]
+fn test_call_function_by_symbol_with_plus() {
+    use LispVal::{Number};
+    let args = vec![Number(1), Number(2)];
+    let expected = Number(3);
+    let scope = HashMap::new();
+    let result = call_function_by_symbol("+", &args, &scope);
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn test_call_function_by_symbol_with_function_in_scope() {
+    use LispVal::{Lambda, List, Number, Symbol};
+    let args = vec![Number(1), Number(2)];
+    let expected = Number(3);
+    let mut scope = HashMap::new();
+    let lambda = Lambda {
+        params: vec![
+            Symbol("x".to_string()),
+            Symbol("y".to_string()),
+        ],
+        body: vec![
+            List(vec![
+                Symbol("+".to_string()),
+                Symbol("x".to_string()),
+                Symbol("y".to_string()),
+            ]),
+        ],
+    };
+    scope.insert("f".to_string(), lambda);
+    let result = call_function_by_symbol("f", &args, &scope);
+    assert_eq!(result, Ok(expected));
+}
+
+fn call_lambda(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
+    let (params, body) = match f {
+        LispVal::Lambda { params, body } => (params, body),
+        _ => return Err(format!("unexpected LispVal while during call_lambda: {:?}", f)),
+    };
+    let mut scope = scope.clone();
+    for (p, arg) in params.iter().zip(args) {
+        if let LispVal::Symbol(ref s) = p {
+            scope.insert(s.clone(), arg.clone());
+        } else {
+            return Err(format!("invalid lambda param: {:?}", p));
+        }
+    }
+    let b = body[0].clone();
+    Ok(eval(b, &scope)?)
+}
+
 fn call_function(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
     match f {
-        &LispVal::Function(ref fn_name) => match fn_name.as_ref() {
-            "and" => call_and(&args, &scope),
-            "or" => call_or(&args, &scope),
-            "+" => call_plus(&args, &scope),
-            "-" => call_minus(&args, &scope),
-            "*" => call_mult(&args, &scope),
-            "/" => call_div(&args, &scope),
-            s => Err(format!("Don't know how to do that yet (call_function: {})", s)),
-        },
-        &LispVal::Let => call_let(&args, &scope),
-        _ => return Err(format!("Don't know how to do that yet (call_function: {:?})", f)),
+        &LispVal::Symbol(ref fn_name) => call_function_by_symbol(fn_name, &args, &scope),
+        lambda@&LispVal::Lambda { .. } => call_lambda(lambda, args, scope),
+        _ => return Err(format!("Don't know how to do that yet (call_function 2: {:?})", f)),
     }
 }
 
 pub fn eval(val: LispVal, scope: &Scope) -> Result<LispVal, String> {
+    use LispVal::{Lambda, List, Number, Symbol, Vector};
     match val {
-        LispVal::List(vals) => {
+        List(vals) => {
             let f = &vals[0];
             let mut args = vec![];
             for arg in &vals[1..] {
-                args.push(eval(arg.clone(), &scope)?);
+                // Don't attempt to eval special form symbols
+                let v = match *f {
+                    Symbol(ref s) if s == "let" || s == "fn" => arg.clone(),
+                    _ => eval(arg.clone(), &scope)?,
+                };
+                args.push(v);
             }
             return call_function(&f, &args, &scope);
         }
-        LispVal::Vector(ref vals) => {
+        lambda@Lambda { .. } => Ok(lambda),
+        Vector(ref vals) => {
             let lst: Result<Vec<_>, String> = vals.iter().map(|v| eval(v.clone(), &scope)).collect();
-            lst.map(|v| LispVal::Vector(v))
+            lst.map(|v| Vector(v))
         }
-        v@LispVal::Number(..) => Ok(v),
-        LispVal::Symbol(ref s) => {
-            match scope.get(s) {
-                Some(v) => Ok(v.clone()),
-                None => Err(format!("{} is not defined", s)),
-            }
+        v@Number(..) => Ok(v),
+        Symbol(ref s) => match scope.get(s) {
+            Some(v) => Ok(v.clone()),
+            None => Err(format!("{} is not defined", s)),
         }
         _ => panic!("Don't know how to do that yet (eval: {:?})", val),
     }
