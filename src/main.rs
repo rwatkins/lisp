@@ -25,40 +25,45 @@ fn run_program(program: &str) -> Result<LispVal, String> {
     eval(ast[0].clone(), &scope).map_err(|e| format!("eval failed: {}", e))
 }
 
-#[test]
-fn test_run_program() {
-    let program = "
-    (let [f (fn [x y]
-              (* (+ x y) 10))
-          a 3
-          b 4]
-      (f a b))
-    ";
-    let expected = Ok(LispVal::Number(70));
-    let result = run_program(program);
-    assert_eq!(result, expected);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_run_program2() {
-    let program = "
-    (let [f (fn [x] (* x x))
-          apply1 (fn [f x] (f (+ 1 x)))]
-      (apply1 f 4))
-    ";
-    let expected = Ok(LispVal::Number(25));
-    let result = run_program(program);
-    assert_eq!(result, expected);
-}
+    #[test]
+    fn run_program_with_example1() {
+        let program = "
+        (let [f (fn [x y]
+                (* (+ x y) 10))
+            a 3
+            b 4]
+        (f a b))
+        ";
+        let expected = Ok(LispVal::Number(70));
+        let result = run_program(program);
+        assert_eq!(result, expected);
+    }
 
-#[test]
-fn test_run_program3() {
-    let program = "
-    (let [x 1
-          f (fn [y] (+ x y))]
-      (* (f 2) 4))
-    ";
-    let expected = Ok(LispVal::Number(12));
-    let result = run_program(program);
-    assert_eq!(result, expected);
+    #[test]
+    fn run_program_with_example2() {
+        let program = "
+        (let [f (fn [x] (* x x))
+            apply1 (fn [f x] (f (+ 1 x)))]
+        (apply1 f 4))
+        ";
+        let expected = Ok(LispVal::Number(25));
+        let result = run_program(program);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn run_program_with_example3() {
+        let program = "
+        (let [x 1
+            f (fn [y] (+ x y))]
+        (* (f 2) 4))
+        ";
+        let expected = Ok(LispVal::Number(12));
+        let result = run_program(program);
+        assert_eq!(result, expected);
+    }
 }

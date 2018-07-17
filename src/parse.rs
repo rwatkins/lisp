@@ -126,13 +126,6 @@ fn parse_symbol(tokens: &mut VecDeque<Token>) -> ParseResult {
     }
 }
 
-#[test]
-fn test_parse_symbol_can_parse_nil() {
-    let mut tokens = VecDeque::new();
-    tokens.push_front(Token::Symbol("nil".into()));
-    assert_eq!(parse_symbol(&mut tokens), Ok(LispVal::Nil));
-}
-
 fn skip_whitespace(tokens: &mut VecDeque<Token>) {
     loop {
         match peek(tokens) {
@@ -144,99 +137,6 @@ fn skip_whitespace(tokens: &mut VecDeque<Token>) {
     }
 }
 
-#[test]
-fn test_parse_lambda() {
-    use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
-
-    let tokens = vec![
-        LParen,
-        Symbol("fn".into()),
-        Whitespace(" ".into()),
-        LBracket,
-        Symbol("x".into()),
-        RBracket,
-        Whitespace(" ".into()),
-        LParen,
-        Symbol("+".into()),
-        Whitespace(" ".into()),
-        Symbol("x".into()),
-        Whitespace(" ".into()),
-        Number(1),
-        RParen,
-        RParen,
-    ];
-    let expected = vec![LispVal::Lambda {
-        params: vec![LispVal::Symbol("x".into())],
-        body: vec![
-            LispVal::List(vec![
-                LispVal::Symbol("+".into()),
-                LispVal::Symbol("x".into()),
-                LispVal::Number(1),
-            ]),
-        ],
-    }];
-    let result = parse(&tokens);
-    assert_eq!(result, Ok(expected));
-}
-
-#[test]
-fn test_parse_lambda_inside_let_binding() {
-    use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
-
-    let tokens = vec![
-        // Let start
-        LParen,
-        Symbol("let".into()),
-        // Let bindings start
-        LBracket,
-        Symbol("f".into()),
-        // Lambda start
-        LParen,
-        Symbol("fn".into()),
-        Whitespace(" ".into()),
-        LBracket,
-        Symbol("x".into()),
-        RBracket,
-        Whitespace(" ".into()),
-        LParen,
-        Symbol("+".into()),
-        Whitespace(" ".into()),
-        Symbol("x".into()),
-        Whitespace(" ".into()),
-        Number(1),
-        RParen,
-        RParen,
-        // Lambda end
-        RBracket,
-        // Let bindings end
-        // Let body start
-        Symbol("f".into()),
-        // Let body end
-        RParen,
-        // Let end
-    ];
-    let expected = vec![
-        LispVal::List(vec![
-            LispVal::Symbol("let".into()),
-            LispVal::Vector(vec![
-                LispVal::Symbol("f".into()),
-                LispVal::Lambda {
-                    params: vec![LispVal::Symbol("x".into())],
-                    body: vec![
-                        LispVal::List(vec![
-                            LispVal::Symbol("+".into()),
-                            LispVal::Symbol("x".into()),
-                            LispVal::Number(1),
-                        ]),
-                    ],
-                },
-            ]),
-            LispVal::Symbol("f".into()),
-        ]),
-    ];
-    let result = parse(&tokens);
-    assert_eq!(result, Ok(expected));
-}
 
 fn expect_lparen(tokens: &mut VecDeque<Token>) -> Result<Token, String> {
     match tokens.pop_front() {
@@ -325,4 +225,110 @@ pub fn parse(tokens: &[Token]) -> Result<Vec<LispVal>, String> {
     }
 
     Ok(vals)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_symbol_can_parse_nil() {
+        let mut tokens = VecDeque::new();
+        tokens.push_front(Token::Symbol("nil".into()));
+        assert_eq!(parse_symbol(&mut tokens), Ok(LispVal::Nil));
+    }
+
+    #[test]
+    fn parse_lambda() {
+        use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
+
+        let tokens = vec![
+            LParen,
+            Symbol("fn".into()),
+            Whitespace(" ".into()),
+            LBracket,
+            Symbol("x".into()),
+            RBracket,
+            Whitespace(" ".into()),
+            LParen,
+            Symbol("+".into()),
+            Whitespace(" ".into()),
+            Symbol("x".into()),
+            Whitespace(" ".into()),
+            Number(1),
+            RParen,
+            RParen,
+        ];
+        let expected = vec![LispVal::Lambda {
+            params: vec![LispVal::Symbol("x".into())],
+            body: vec![
+                LispVal::List(vec![
+                    LispVal::Symbol("+".into()),
+                    LispVal::Symbol("x".into()),
+                    LispVal::Number(1),
+                ]),
+            ],
+        }];
+        let result = parse(&tokens);
+        assert_eq!(result, Ok(expected));
+    }
+
+    #[test]
+    fn parse_lambda_inside_let_binding() {
+        use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
+
+        let tokens = vec![
+            // Let start
+            LParen,
+            Symbol("let".into()),
+            // Let bindings start
+            LBracket,
+            Symbol("f".into()),
+            // Lambda start
+            LParen,
+            Symbol("fn".into()),
+            Whitespace(" ".into()),
+            LBracket,
+            Symbol("x".into()),
+            RBracket,
+            Whitespace(" ".into()),
+            LParen,
+            Symbol("+".into()),
+            Whitespace(" ".into()),
+            Symbol("x".into()),
+            Whitespace(" ".into()),
+            Number(1),
+            RParen,
+            RParen,
+            // Lambda end
+            RBracket,
+            // Let bindings end
+            // Let body start
+            Symbol("f".into()),
+            // Let body end
+            RParen,
+            // Let end
+        ];
+        let expected = vec![
+            LispVal::List(vec![
+                LispVal::Symbol("let".into()),
+                LispVal::Vector(vec![
+                    LispVal::Symbol("f".into()),
+                    LispVal::Lambda {
+                        params: vec![LispVal::Symbol("x".into())],
+                        body: vec![
+                            LispVal::List(vec![
+                                LispVal::Symbol("+".into()),
+                                LispVal::Symbol("x".into()),
+                                LispVal::Number(1),
+                            ]),
+                        ],
+                    },
+                ]),
+                LispVal::Symbol("f".into()),
+            ]),
+        ];
+        let result = parse(&tokens);
+        assert_eq!(result, Ok(expected));
+    }
 }

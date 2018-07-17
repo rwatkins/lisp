@@ -52,31 +52,6 @@ fn lex_symbol(s: &str, i: usize) -> Option<(Token, usize)> {
     Some((Token::Symbol(symbol.to_string()), i + symbol.len()))
 }
 
-#[test]
-fn test_word_is_a_valid_symbol() {
-    assert_eq!(lex_symbol("asdf", 0), Some((Token::Symbol("asdf".into()), 4)));
-}
-
-#[test]
-fn test_symbol_cannot_start_with_a_number() {
-    assert_eq!(lex_symbol("9asdf", 0), None);
-}
-
-#[test]
-fn test_lex_symbol_respects_index() {
-    assert_eq!(lex_symbol("9 asdf", 2), Some((Token::Symbol("asdf".into()), 6)));
-}
-
-#[test]
-fn test_lex_plus() {
-    assert_eq!(lex_symbol("+", 0), Some((Token::Symbol("+".into()), 1)));
-}
-
-#[test]
-fn test_lex_minus() {
-    assert_eq!(lex_symbol("-", 0), Some((Token::Symbol("-".into()), 1)));
-}
-
 fn lex_number(s: &str, i: usize) -> Option<(Token, usize)> {
     let re = Regex::new(r"^(\d+)").unwrap();
     let caps = re.captures(&s[i..])?;
@@ -116,4 +91,34 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
         }
     }
     Ok(tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn word_is_a_valid_symbol() {
+        assert_eq!(lex_symbol("asdf", 0), Some((Token::Symbol("asdf".into()), 4)));
+    }
+
+    #[test]
+    fn symbol_cannot_start_with_a_number() {
+        assert_eq!(lex_symbol("9asdf", 0), None);
+    }
+
+    #[test]
+    fn lex_symbol_respects_index() {
+        assert_eq!(lex_symbol("9 asdf", 2), Some((Token::Symbol("asdf".into()), 6)));
+    }
+
+    #[test]
+    fn lex_plus() {
+        assert_eq!(lex_symbol("+", 0), Some((Token::Symbol("+".into()), 1)));
+    }
+
+    #[test]
+    fn lex_minus() {
+        assert_eq!(lex_symbol("-", 0), Some((Token::Symbol("-".into()), 1)));
+    }
 }

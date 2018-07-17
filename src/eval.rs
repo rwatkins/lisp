@@ -4,23 +4,11 @@ use parse::LispVal;
 type EvalResult = Result<LispVal, String>;
 type Scope = HashMap<String, LispVal>;
 
-fn new_scope() -> Scope {
-    HashMap::new()
-}
-
 fn is_truthy(val: &LispVal) -> bool {
     match val {
         &LispVal::Nil | &LispVal::Bool(false) => false,
         _ => true,
     }
-}
-
-#[test]
-fn test_is_truthy() {
-    assert_eq!(is_truthy(&LispVal::Bool(true)), true);
-    assert_eq!(is_truthy(&LispVal::Bool(false)), false);
-    assert_eq!(is_truthy(&LispVal::Nil), false);
-    assert_eq!(is_truthy(&LispVal::Symbol("abcd".into())), true);
 }
 
 fn call_and(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
@@ -33,20 +21,6 @@ fn call_and(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
         }
     }
     Ok(args[args.len() - 1].clone())
-}
-
-#[test]
-fn test_call_and_with_1_arg() {
-    let args = vec![LispVal::Bool(true)];
-    let result = call_and(&args, &new_scope());
-    assert_eq!(result, Ok(LispVal::Bool(true)));
-}
-
-#[test]
-fn test_call_and_with_no_args() {
-    let args = vec![];
-    let result = call_and(&args, &new_scope());
-    assert_eq!(result, Ok(LispVal::Bool(true)));
 }
 
 fn call_or(args: &Vec<LispVal>, _: &Scope) -> EvalResult {
@@ -81,17 +55,6 @@ fn call_minus(args: &Vec<LispVal>, _scope: &Scope) -> EvalResult {
         }
     }
     Ok(LispVal::Number(result))
-}
-
-#[test]
-fn test_call_minus() {
-    let args = vec![
-        LispVal::Number(6),
-        LispVal::Number(1),
-        LispVal::Number(2),
-    ];
-    let result = call_minus(&args, &new_scope());
-    assert_eq!(result, Ok(LispVal::Number(3)));
 }
 
 fn call_mult(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
@@ -156,25 +119,6 @@ fn call_let(args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
     result
 }
 
-#[test]
-fn test_call_let() {
-    let args = vec![
-        LispVal::Vector(vec![
-            LispVal::Symbol("x".into()),
-            LispVal::Number(1),
-            LispVal::Symbol("y".into()),
-            LispVal::Number(2),
-        ]),
-        LispVal::List(vec![
-            LispVal::Symbol("+".into()),
-            LispVal::Symbol("x".into()),
-            LispVal::Symbol("y".into()),
-        ]),
-    ];
-    let result = call_let(&args, &new_scope());
-    assert_eq!(result, Ok(LispVal::Number(3)));
-}
-
 fn call_function_by_symbol(symbol: &str, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
     match symbol.as_ref() {
         "and" => call_and(&args, &scope),
@@ -189,40 +133,6 @@ fn call_function_by_symbol(symbol: &str, args: &Vec<LispVal>, scope: &Scope) -> 
             _ => Err(format!("undefined function {:?}", s)),
         }
     }
-}
-
-#[test]
-fn test_call_function_by_symbol_with_plus() {
-    use LispVal::{Number};
-    let args = vec![Number(1), Number(2)];
-    let expected = Number(3);
-    let scope = HashMap::new();
-    let result = call_function_by_symbol("+", &args, &scope);
-    assert_eq!(result, Ok(expected));
-}
-
-#[test]
-fn test_call_function_by_symbol_with_function_in_scope() {
-    use LispVal::{Lambda, List, Number, Symbol};
-    let args = vec![Number(1), Number(2)];
-    let expected = Number(3);
-    let mut scope = HashMap::new();
-    let lambda = Lambda {
-        params: vec![
-            Symbol("x".to_string()),
-            Symbol("y".to_string()),
-        ],
-        body: vec![
-            List(vec![
-                Symbol("+".to_string()),
-                Symbol("x".to_string()),
-                Symbol("y".to_string()),
-            ]),
-        ],
-    };
-    scope.insert("f".to_string(), lambda);
-    let result = call_function_by_symbol("f", &args, &scope);
-    assert_eq!(result, Ok(expected));
 }
 
 fn call_lambda(f: &LispVal, args: &Vec<LispVal>, scope: &Scope) -> EvalResult {
@@ -277,5 +187,100 @@ pub fn eval(val: LispVal, scope: &Scope) -> Result<LispVal, String> {
             None => Err(format!("{} is not defined", s)),
         }
         _ => panic!("Don't know how to do that yet (eval: {:?})", val),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn new_scope() -> Scope {
+        HashMap::new()
+    }
+
+    #[test]
+    fn is_truthy_works() {
+        assert_eq!(is_truthy(&LispVal::Bool(true)), true);
+        assert_eq!(is_truthy(&LispVal::Bool(false)), false);
+        assert_eq!(is_truthy(&LispVal::Nil), false);
+        assert_eq!(is_truthy(&LispVal::Symbol("abcd".into())), true);
+    }
+
+    #[test]
+    fn call_and_with_1_arg() {
+        let args = vec![LispVal::Bool(true)];
+        let result = call_and(&args, &new_scope());
+        assert_eq!(result, Ok(LispVal::Bool(true)));
+    }
+
+    #[test]
+    fn call_and_with_no_args() {
+        let args = vec![];
+        let result = call_and(&args, &new_scope());
+        assert_eq!(result, Ok(LispVal::Bool(true)));
+    }
+
+    #[test]
+    fn call_minus_works() {
+        let args = vec![
+            LispVal::Number(6),
+            LispVal::Number(1),
+            LispVal::Number(2),
+        ];
+        let result = call_minus(&args, &new_scope());
+        assert_eq!(result, Ok(LispVal::Number(3)));
+    }
+
+    #[test]
+    fn call_let_works() {
+        let args = vec![
+            LispVal::Vector(vec![
+                LispVal::Symbol("x".into()),
+                LispVal::Number(1),
+                LispVal::Symbol("y".into()),
+                LispVal::Number(2),
+            ]),
+            LispVal::List(vec![
+                LispVal::Symbol("+".into()),
+                LispVal::Symbol("x".into()),
+                LispVal::Symbol("y".into()),
+            ]),
+        ];
+        let result = call_let(&args, &new_scope());
+        assert_eq!(result, Ok(LispVal::Number(3)));
+    }
+
+    #[test]
+    fn call_function_by_symbol_with_plus() {
+        use LispVal::{Number};
+        let args = vec![Number(1), Number(2)];
+        let expected = Number(3);
+        let scope = HashMap::new();
+        let result = call_function_by_symbol("+", &args, &scope);
+        assert_eq!(result, Ok(expected));
+    }
+
+    #[test]
+    fn call_function_by_symbol_with_function_in_scope() {
+        use LispVal::{Lambda, List, Number, Symbol};
+        let args = vec![Number(1), Number(2)];
+        let expected = Number(3);
+        let mut scope = HashMap::new();
+        let lambda = Lambda {
+            params: vec![
+                Symbol("x".to_string()),
+                Symbol("y".to_string()),
+            ],
+            body: vec![
+                List(vec![
+                    Symbol("+".to_string()),
+                    Symbol("x".to_string()),
+                    Symbol("y".to_string()),
+                ]),
+            ],
+        };
+        scope.insert("f".to_string(), lambda);
+        let result = call_function_by_symbol("f", &args, &scope);
+        assert_eq!(result, Ok(expected));
     }
 }
