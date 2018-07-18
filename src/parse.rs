@@ -1,7 +1,7 @@
-use std::collections::VecDeque;
-use std::fmt;
 use itertools::Itertools;
 use lex::Token;
+use std::collections::VecDeque;
+use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LispVal {
@@ -10,7 +10,10 @@ pub enum LispVal {
     Vector(Vec<LispVal>),
     Number(i32),
     Bool(bool),
-    Lambda { params: Vec<LispVal>, body: Vec<LispVal> },
+    Lambda {
+        params: Vec<LispVal>,
+        body: Vec<LispVal>,
+    },
     Nil,
 }
 
@@ -22,7 +25,9 @@ impl fmt::Display for LispVal {
 
         match *self {
             Symbol(ref s) => write!(f, "{}", s),
-            List(ref vals) | Vector(ref vals) => write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(" ")),
+            List(ref vals) | Vector(ref vals) => {
+                write!(f, "[{}]", vals.iter().map(|s| format!("{}", s)).join(" "))
+            }
             Number(i) => write!(f, "{}", i),
             Bool(b) => write!(f, "{}", b),
             Lambda { .. } => write!(f, "<lambda>"),
@@ -58,7 +63,12 @@ fn parse_list(tokens: &mut VecDeque<Token>) -> ParseResult {
                 let lst = parse_vector(tokens)?;
                 list.push(lst);
             }
-            Some(Token::RBracket) => return Err(format!("Unexpected token while parsing list 2: {:?}", Token::RBracket)),
+            Some(Token::RBracket) => {
+                return Err(format!(
+                    "Unexpected token while parsing list 2: {:?}",
+                    Token::RBracket
+                ))
+            }
         }
     }
 
@@ -77,7 +87,7 @@ fn parse_vector(tokens: &mut VecDeque<Token>) -> ParseResult {
             None => return Err("Unexpected end of input".into()),
             Some(Token::RBracket) => break,
             Some(Token::Whitespace(..)) => continue,
-            Some(s@Token::Symbol(..)) => {
+            Some(s @ Token::Symbol(..)) => {
                 tokens.push_front(s);
                 list.push(parse_symbol(tokens)?);
             }
@@ -92,7 +102,12 @@ fn parse_vector(tokens: &mut VecDeque<Token>) -> ParseResult {
                 let lst = parse_vector(tokens)?;
                 list.push(lst);
             }
-            Some(Token::RParen) => return Err(format!("Unexpected token while parsing vector 2: {:?}", Token::RParen)),
+            Some(Token::RParen) => {
+                return Err(format!(
+                    "Unexpected token while parsing vector 2: {:?}",
+                    Token::RParen
+                ))
+            }
         }
     }
 
@@ -114,13 +129,11 @@ fn parse_number(tokens: &mut VecDeque<Token>) -> ParseResult {
 fn parse_symbol(tokens: &mut VecDeque<Token>) -> ParseResult {
     match tokens.pop_front() {
         None => Err("Unexpected end of input".into()),
-        Some(Token::Symbol(s)) => {
-            match s.as_ref() {
-                "true" => Ok(LispVal::Bool(true)),
-                "false" => Ok(LispVal::Bool(false)),
-                "nil" => Ok(LispVal::Nil),
-                _ => Ok(LispVal::Symbol(s)),
-            }
+        Some(Token::Symbol(s)) => match s.as_ref() {
+            "true" => Ok(LispVal::Bool(true)),
+            "false" => Ok(LispVal::Bool(false)),
+            "nil" => Ok(LispVal::Nil),
+            _ => Ok(LispVal::Symbol(s)),
         },
         Some(t) => Err(format!("Unexpected token while parsing symbol: {:?}", t)),
     }
@@ -136,7 +149,6 @@ fn skip_whitespace(tokens: &mut VecDeque<Token>) {
         }
     }
 }
-
 
 fn expect_lparen(tokens: &mut VecDeque<Token>) -> Result<Token, String> {
     match tokens.pop_front() {
@@ -261,13 +273,11 @@ mod tests {
         ];
         let expected = vec![LispVal::Lambda {
             params: vec![LispVal::Symbol("x".into())],
-            body: vec![
-                LispVal::List(vec![
-                    LispVal::Symbol("+".into()),
-                    LispVal::Symbol("x".into()),
-                    LispVal::Number(1),
-                ]),
-            ],
+            body: vec![LispVal::List(vec![
+                LispVal::Symbol("+".into()),
+                LispVal::Symbol("x".into()),
+                LispVal::Number(1),
+            ])],
         }];
         let result = parse(&tokens);
         assert_eq!(result, Ok(expected));
@@ -309,25 +319,21 @@ mod tests {
             RParen,
             // Let end
         ];
-        let expected = vec![
-            LispVal::List(vec![
-                LispVal::Symbol("let".into()),
-                LispVal::Vector(vec![
-                    LispVal::Symbol("f".into()),
-                    LispVal::Lambda {
-                        params: vec![LispVal::Symbol("x".into())],
-                        body: vec![
-                            LispVal::List(vec![
-                                LispVal::Symbol("+".into()),
-                                LispVal::Symbol("x".into()),
-                                LispVal::Number(1),
-                            ]),
-                        ],
-                    },
-                ]),
+        let expected = vec![LispVal::List(vec![
+            LispVal::Symbol("let".into()),
+            LispVal::Vector(vec![
                 LispVal::Symbol("f".into()),
+                LispVal::Lambda {
+                    params: vec![LispVal::Symbol("x".into())],
+                    body: vec![LispVal::List(vec![
+                        LispVal::Symbol("+".into()),
+                        LispVal::Symbol("x".into()),
+                        LispVal::Number(1),
+                    ])],
+                },
             ]),
-        ];
+            LispVal::Symbol("f".into()),
+        ])];
         let result = parse(&tokens);
         assert_eq!(result, Ok(expected));
     }

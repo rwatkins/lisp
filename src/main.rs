@@ -5,11 +5,11 @@ mod eval;
 mod lex;
 mod parse;
 
-use std::collections::HashMap;
-use std::io::{self, Read};
 use eval::eval;
 use lex::lex;
-use parse::{LispVal, parse};
+use parse::{parse, LispVal};
+use std::collections::HashMap;
+use std::io::{self, Read};
 
 fn main() {
     let mut s = String::new();

@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use regex::Regex;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
@@ -18,7 +18,10 @@ fn lex_whitespace(s: &str, i: usize) -> Option<(Token, usize)> {
     let re = Regex::new(r"(^\s+)").unwrap();
     let caps = re.captures(&s[i..])?;
     let whitespace = caps.get(1)?.as_str();
-    Some((Token::Whitespace(whitespace.to_string()), i + whitespace.len()))
+    Some((
+        Token::Whitespace(whitespace.to_string()),
+        i + whitespace.len(),
+    ))
 }
 
 fn lex_lparen(s: &str, i: usize) -> Option<(Token, usize)> {
@@ -56,7 +59,10 @@ fn lex_number(s: &str, i: usize) -> Option<(Token, usize)> {
     let re = Regex::new(r"^(\d+)").unwrap();
     let caps = re.captures(&s[i..])?;
     let number = caps.get(1)?.as_str();
-    Some((Token::Number(i32::from_str(number).unwrap()), i + number.len()))
+    Some((
+        Token::Number(i32::from_str(number).unwrap()),
+        i + number.len(),
+    ))
 }
 
 fn lex_once(s: &str, index: usize) -> Option<(Token, usize)> {
@@ -87,7 +93,10 @@ pub fn lex(s: &str) -> Result<Vec<Token>, String> {
             tokens.push(t);
             index = i;
         } else {
-            return Err(format!("Unexpected token: {}", s[index..index+1].to_string()));
+            return Err(format!(
+                "Unexpected token: {}",
+                s[index..index + 1].to_string()
+            ));
         }
     }
     Ok(tokens)
@@ -99,7 +108,10 @@ mod tests {
 
     #[test]
     fn word_is_a_valid_symbol() {
-        assert_eq!(lex_symbol("asdf", 0), Some((Token::Symbol("asdf".into()), 4)));
+        assert_eq!(
+            lex_symbol("asdf", 0),
+            Some((Token::Symbol("asdf".into()), 4))
+        );
     }
 
     #[test]
@@ -109,7 +121,10 @@ mod tests {
 
     #[test]
     fn lex_symbol_respects_index() {
-        assert_eq!(lex_symbol("9 asdf", 2), Some((Token::Symbol("asdf".into()), 6)));
+        assert_eq!(
+            lex_symbol("9 asdf", 2),
+            Some((Token::Symbol("asdf".into()), 6))
+        );
     }
 
     #[test]

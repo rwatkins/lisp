@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use parse::LispVal;
+use std::collections::HashMap;
 
 type EvalResult = Result<LispVal, String>;
 type Scope = HashMap<String, LispVal>;
@@ -104,9 +104,14 @@ fn call_let(args: &[LispVal], scope: &Scope) -> EvalResult {
     while i < bindings.len() {
         let name = match bindings[i] {
             LispVal::Symbol(ref s) => s.clone(),
-            _ => return Err(format!("let cannot bind value to non-symbol {:?}", &bindings[1])),
+            _ => {
+                return Err(format!(
+                    "let cannot bind value to non-symbol {:?}",
+                    &bindings[1]
+                ))
+            }
         };
-        let value = bindings[i+1].clone();
+        let value = bindings[i + 1].clone();
         let new_scope_copy = new_scope.clone();
         new_scope.insert(name, eval(value, &new_scope_copy)?);
         i += 2;
@@ -131,14 +136,19 @@ fn call_function_by_symbol(symbol: &str, args: &[LispVal], scope: &Scope) -> Eva
         s => match scope.get(symbol) {
             Some(f) => call_lambda(f, args, scope),
             _ => Err(format!("undefined function {:?}", s)),
-        }
+        },
     }
 }
 
 fn call_lambda(f: &LispVal, args: &[LispVal], scope: &Scope) -> EvalResult {
     let (params, body) = match f {
         LispVal::Lambda { params, body } => (params, body),
-        _ => return Err(format!("unexpected LispVal while during call_lambda: {:?}", f)),
+        _ => {
+            return Err(format!(
+                "unexpected LispVal while during call_lambda: {:?}",
+                f
+            ))
+        }
     };
     let mut scope = scope.clone();
     for (p, arg) in params.iter().zip(args) {
@@ -155,8 +165,11 @@ fn call_lambda(f: &LispVal, args: &[LispVal], scope: &Scope) -> EvalResult {
 fn call_function(f: &LispVal, args: &[LispVal], scope: &Scope) -> EvalResult {
     match f {
         &LispVal::Symbol(ref fn_name) => call_function_by_symbol(fn_name, &args, &scope),
-        lambda@&LispVal::Lambda { .. } => call_lambda(lambda, args, scope),
-        _ => Err(format!("Don't know how to do that yet (call_function 2: {:?})", f)),
+        lambda @ &LispVal::Lambda { .. } => call_lambda(lambda, args, scope),
+        _ => Err(format!(
+            "Don't know how to do that yet (call_function 2: {:?})",
+            f
+        )),
     }
 }
 
@@ -176,16 +189,17 @@ pub fn eval(val: LispVal, scope: &Scope) -> Result<LispVal, String> {
             }
             call_function(&f, &args, &scope)
         }
-        lambda@Lambda { .. } => Ok(lambda),
+        lambda @ Lambda { .. } => Ok(lambda),
         Vector(ref vals) => {
-            let lst: Result<Vec<_>, String> = vals.iter().map(|v| eval(v.clone(), &scope)).collect();
+            let lst: Result<Vec<_>, String> =
+                vals.iter().map(|v| eval(v.clone(), &scope)).collect();
             lst.map(Vector)
         }
-        v@Number(..) => Ok(v),
+        v @ Number(..) => Ok(v),
         Symbol(ref s) => match scope.get(s) {
             Some(v) => Ok(v.clone()),
             None => Err(format!("{} is not defined", s)),
-        }
+        },
         _ => panic!("Don't know how to do that yet (eval: {:?})", val),
     }
 }
@@ -222,11 +236,7 @@ mod tests {
 
     #[test]
     fn call_minus_works() {
-        let args = vec![
-            LispVal::Number(6),
-            LispVal::Number(1),
-            LispVal::Number(2),
-        ];
+        let args = vec![LispVal::Number(6), LispVal::Number(1), LispVal::Number(2)];
         let result = call_minus(&args, &new_scope());
         assert_eq!(result, Ok(LispVal::Number(3)));
     }
@@ -252,7 +262,7 @@ mod tests {
 
     #[test]
     fn call_function_by_symbol_with_plus() {
-        use LispVal::{Number};
+        use LispVal::Number;
         let args = vec![Number(1), Number(2)];
         let expected = Number(3);
         let scope = HashMap::new();
@@ -267,17 +277,12 @@ mod tests {
         let expected = Number(3);
         let mut scope = HashMap::new();
         let lambda = Lambda {
-            params: vec![
+            params: vec![Symbol("x".to_string()), Symbol("y".to_string())],
+            body: vec![List(vec![
+                Symbol("+".to_string()),
                 Symbol("x".to_string()),
                 Symbol("y".to_string()),
-            ],
-            body: vec![
-                List(vec![
-                    Symbol("+".to_string()),
-                    Symbol("x".to_string()),
-                    Symbol("y".to_string()),
-                ]),
-            ],
+            ])],
         };
         scope.insert("f".to_string(), lambda);
         let result = call_function_by_symbol("f", &args, &scope);
