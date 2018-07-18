@@ -50,7 +50,7 @@ fn call_minus(args: &[LispVal], _scope: &Scope) -> EvalResult {
     };
     for arg in args[1..].iter() {
         match arg {
-            LispVal::Number(ref i) => result -= i,
+            LispVal::Number(i) => result -= i,
             x => return Err(format!("Unexpected arg to minus: {:?}", x)),
         }
     }
@@ -64,7 +64,7 @@ fn call_mult(args: &[LispVal], scope: &Scope) -> EvalResult {
     };
     for arg in args[1..].iter() {
         match eval(arg.clone(), &scope)? {
-            LispVal::Number(ref i) => result *= i,
+            LispVal::Number(i) => result *= i,
             x => return Err(format!("Unexpected arg to mult: {:?}", x)),
         }
     }
@@ -78,7 +78,7 @@ fn call_div(args: &[LispVal], scope: &Scope) -> EvalResult {
     };
     for arg in args[1..].iter() {
         match eval(arg.clone(), &scope)? {
-            LispVal::Number(ref i) => result /= i,
+            LispVal::Number(i) => result /= i,
             x => return Err(format!("Unexpected arg to div: {:?}", x)),
         }
     }
