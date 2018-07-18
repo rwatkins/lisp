@@ -70,7 +70,7 @@ fn lex_once(s: &str, index: usize) -> Option<(Token, usize)> {
         lex_symbol,
     ];
 
-    for lex_fn in token_fns.iter() {
+    for lex_fn in &token_fns {
         if let Some((t, i)) = lex_fn(s, index) {
             return Some((t, i));
         }

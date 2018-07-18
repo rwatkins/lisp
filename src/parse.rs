@@ -33,7 +33,7 @@ impl fmt::Display for LispVal {
 
 fn parse_list(tokens: &mut VecDeque<Token>) -> ParseResult {
     let mut list = vec![];
-    let _ = match tokens.pop_front() {
+    match tokens.pop_front() {
         Some(Token::LParen) => (),
         t => return Err(format!("Unexpected token while parsing list 1: {:?}", t)),
     };
@@ -67,7 +67,7 @@ fn parse_list(tokens: &mut VecDeque<Token>) -> ParseResult {
 
 fn parse_vector(tokens: &mut VecDeque<Token>) -> ParseResult {
     let mut list = vec![];
-    let _ = match tokens.pop_front() {
+    match tokens.pop_front() {
         Some(Token::LBracket) => (),
         t => return Err(format!("Unexpected token while parsing vector 1: {:?}", t)),
     };
@@ -100,7 +100,7 @@ fn parse_vector(tokens: &mut VecDeque<Token>) -> ParseResult {
 }
 
 fn peek(tokens: &VecDeque<Token>) -> Option<Token> {
-    tokens.front().map(|x| x.clone())
+    tokens.front().cloned()
 }
 
 fn parse_number(tokens: &mut VecDeque<Token>) -> ParseResult {
@@ -141,21 +141,21 @@ fn skip_whitespace(tokens: &mut VecDeque<Token>) {
 fn expect_lparen(tokens: &mut VecDeque<Token>) -> Result<Token, String> {
     match tokens.pop_front() {
         Some(Token::LParen) => Ok(Token::LParen),
-        v => return Err(format!("expected LParen, got {:?}", v)),
+        v => Err(format!("expected LParen, got {:?}", v)),
     }
 }
 
 fn expect_rparen(tokens: &mut VecDeque<Token>) -> Result<Token, String> {
     match tokens.pop_front() {
         Some(Token::RParen) => Ok(Token::RParen),
-        v => return Err(format!("expected RParen, got {:?}", v)),
+        v => Err(format!("expected RParen, got {:?}", v)),
     }
 }
 
 fn expect_symbol_fn(tokens: &mut VecDeque<Token>) -> Result<Token, String> {
     match tokens.pop_front() {
         Some(Token::Symbol(ref s)) if s == "fn" => Ok(Token::Symbol("fn".into())),
-        v => return Err(format!("expected Symbol \"fn\", got {:?}", v)),
+        v => Err(format!("expected Symbol \"fn\", got {:?}", v)),
     }
 }
 
@@ -171,7 +171,7 @@ fn parse_lambda(tokens: &mut VecDeque<Token>) -> ParseResult {
     skip_whitespace(tokens);
     let body = parse_until_unexpected(tokens)?;
     let _ = expect_rparen(tokens)?;
-    Ok(LispVal::Lambda { params, body: body })
+    Ok(LispVal::Lambda { params, body })
 }
 
 fn parse_lambda_or_list(tokens: &mut VecDeque<Token>) -> ParseResult {

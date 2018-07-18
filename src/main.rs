@@ -19,8 +19,8 @@ fn main() {
 }
 
 fn run_program(program: &str) -> Result<LispVal, String> {
-    let mut tokens = lex(&program).map_err(|e| format!("lex failed: {}", e))?;
-    let ast = parse(&mut tokens).map_err(|e| format!("parse failed: {}", e))?;
+    let tokens = lex(&program).map_err(|e| format!("lex failed: {}", e))?;
+    let ast = parse(&tokens).map_err(|e| format!("parse failed: {}", e))?;
     let scope = HashMap::new();
     eval(ast[0].clone(), &scope).map_err(|e| format!("eval failed: {}", e))
 }
