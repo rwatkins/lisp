@@ -1,7 +1,10 @@
+cargo-features = ["edition"]
+
 [package]
 name = "lisp"
 version = "0.1.0"
 authors = ["Riley Watkins <riley@rileywatkins.com>"]
+edition = "2018"
 
 [dependencies]
 regex = "0.2.10"
