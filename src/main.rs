@@ -7,9 +7,9 @@ mod eval;
 mod lex;
 mod parse;
 
-use eval::eval;
-use lex::lex;
-use parse::{parse, LispVal};
+use crate::eval::eval;
+use crate::lex::lex;
+use crate::parse::{parse, LispVal};
 use std::collections::HashMap;
 use std::io::{self, Read};
 

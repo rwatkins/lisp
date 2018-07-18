@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use lex::Token;
+use crate::lex::Token;
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -21,7 +21,7 @@ type ParseResult = Result<LispVal, String>;
 
 impl fmt::Display for LispVal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use LispVal::*;
+        use self::LispVal::*;
 
         match *self {
             Symbol(ref s) => write!(f, "{}", s),
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn parse_lambda() {
-        use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
+        use crate::lex::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
 
         let tokens = vec![
             LParen,
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_inside_let_binding() {
-        use self::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
+        use crate::lex::Token::{LBracket, LParen, Number, RBracket, RParen, Symbol, Whitespace};
 
         let tokens = vec![
             // Let start

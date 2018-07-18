@@ -1,4 +1,4 @@
-use parse::LispVal;
+use crate::parse::LispVal;
 use std::collections::HashMap;
 
 type EvalResult = Result<LispVal, String>;
@@ -174,7 +174,7 @@ fn call_function(f: &LispVal, args: &[LispVal], scope: &Scope) -> EvalResult {
 }
 
 pub fn eval(val: LispVal, scope: &Scope) -> Result<LispVal, String> {
-    use LispVal::{Lambda, List, Number, Symbol, Vector};
+    use crate::parse::LispVal::{Lambda, List, Number, Symbol, Vector};
     match val {
         List(vals) => {
             let f = &vals[0];
@@ -243,6 +243,7 @@ mod tests {
 
     #[test]
     fn call_let_works() {
+        use crate::parse::LispVal;
         let args = vec![
             LispVal::Vector(vec![
                 LispVal::Symbol("x".into()),
@@ -262,7 +263,7 @@ mod tests {
 
     #[test]
     fn call_function_by_symbol_with_plus() {
-        use LispVal::Number;
+        use crate::parse::LispVal::Number;
         let args = vec![Number(1), Number(2)];
         let expected = Number(3);
         let scope = HashMap::new();
@@ -272,7 +273,7 @@ mod tests {
 
     #[test]
     fn call_function_by_symbol_with_function_in_scope() {
-        use LispVal::{Lambda, List, Number, Symbol};
+        use crate::parse::LispVal::{Lambda, List, Number, Symbol};
         let args = vec![Number(1), Number(2)];
         let expected = Number(3);
         let mut scope = HashMap::new();
