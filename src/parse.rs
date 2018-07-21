@@ -1,5 +1,5 @@
-use itertools::Itertools;
 use crate::lex::Token;
+use itertools::Itertools;
 use std::collections::VecDeque;
 use std::fmt;
 
