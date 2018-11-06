@@ -6,5 +6,6 @@ $ echo '
                             (+ 1 (f x)))]
   (apply-and-increment square 4))
 ' | cargo run
-25
+
+17
 ```
